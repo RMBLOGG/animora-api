@@ -1,1 +1,734 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Animora API</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --accent: #e8415a;
+    --accent2: #c0184a;
+    --green: #3fb950;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --code-bg: #0d1117;
+    --ff-mono: 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
 
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; top: 0; left: 0; width: 240px; height: 100vh;
+    background: var(--surface); border-right: 1px solid var(--border);
+    overflow-y: auto; z-index: 100; padding-bottom: 24px;
+  }
+  .sidebar-logo {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar-logo .logo-icon {
+    width: 32px; height: 32px; background: var(--accent);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .sidebar-logo .logo-text { font-weight: 700; font-size: 15px; }
+  .sidebar-logo .logo-sub { font-size: 11px; color: var(--muted); }
+  .sidebar-section { padding: 16px 16px 4px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 16px; color: var(--muted); text-decoration: none;
+    font-size: 13px; transition: all .15s; border-left: 2px solid transparent;
+  }
+  .sidebar-item:hover { color: var(--text); background: var(--surface2); }
+  .sidebar-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(232,65,90,.08); }
+  .sidebar-item .method-badge {
+    font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
+    font-family: var(--ff-mono); flex-shrink: 0;
+  }
+  .get { background: rgba(63,185,80,.15); color: var(--green); }
+
+  /* MAIN */
+  .main { margin-left: 240px; min-height: 100vh; }
+
+  /* HERO */
+  .hero {
+    background: linear-gradient(135deg, var(--surface) 0%, #1a0a0f 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 48px 40px;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(232,65,90,.12); border: 1px solid rgba(232,65,90,.3);
+    color: var(--accent); padding: 4px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; margin-bottom: 16px;
+  }
+  .hero h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .hero h1 span { color: var(--accent); }
+  .hero p { color: var(--muted); font-size: 14px; max-width: 560px; margin-bottom: 24px; }
+  .hero-stats { display: flex; gap: 24px; }
+  .stat { text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--muted); }
+
+  /* BASE URL BOX */
+  .base-url-box {
+    margin: 0 48px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .base-url-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+  .base-url-val { font-family: var(--ff-mono); font-size: 13px; color: var(--green); flex: 1; }
+  .copy-btn {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted); padding: 5px 12px; border-radius: 5px;
+    cursor: pointer; font-size: 12px; white-space: nowrap; transition: all .15s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* CONTENT */
+  .content { padding: 40px 48px; }
+  .endpoint-group { margin-bottom: 48px; }
+  .group-title {
+    font-size: 18px; font-weight: 700; margin-bottom: 4px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  }
+  .group-desc { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+
+  /* ENDPOINT CARD */
+  .endpoint-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; margin-bottom: 16px; overflow: hidden;
+  }
+  .endpoint-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px; cursor: pointer; user-select: none;
+    transition: background .15s;
+  }
+  .endpoint-header:hover { background: var(--surface2); }
+  .method { font-family: var(--ff-mono); font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+  .endpoint-path { font-family: var(--ff-mono); font-size: 13px; flex: 1; }
+  .endpoint-path .param { color: var(--accent); }
+  .endpoint-path .query { color: #79c0ff; }
+  .endpoint-desc { font-size: 12px; color: var(--muted); }
+  .chevron { color: var(--muted); font-size: 12px; transition: transform .2s; }
+  .chevron.open { transform: rotate(180deg); }
+
+  .endpoint-body { display: none; border-top: 1px solid var(--border); }
+  .endpoint-body.open { display: block; }
+
+  .ep-section { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .ep-section:last-child { border-bottom: none; }
+  .ep-section-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+
+  /* PARAMS TABLE */
+  .params-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .params-table th { text-align: left; padding: 6px 10px; font-size: 11px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); }
+  .params-table td { padding: 8px 10px; border-bottom: 1px solid rgba(48,54,61,.5); vertical-align: top; }
+  .params-table tr:last-child td { border-bottom: none; }
+  .param-name { font-family: var(--ff-mono); color: #79c0ff; }
+  .param-type { font-family: var(--ff-mono); font-size: 11px; color: var(--muted); }
+  .param-req { font-size: 10px; padding: 1px 5px; border-radius: 3px; }
+  .req { background: rgba(232,65,90,.15); color: var(--accent); }
+  .opt { background: rgba(139,148,158,.12); color: var(--muted); }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 6px; overflow: hidden;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px; background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px; color: var(--muted);
+  }
+  .code-body { padding: 14px; overflow-x: auto; }
+  pre { font-family: var(--ff-mono); font-size: 12px; line-height: 1.7; white-space: pre; color: var(--text); }
+  .j-key { color: #79c0ff; }
+  .j-str { color: #a5d6ff; }
+  .j-num { color: #f2cc60; }
+  .j-bool { color: var(--accent); }
+  .j-null { color: var(--muted); }
+  .j-arr { color: var(--green); }
+
+  /* TRY IT */
+  .try-btn {
+    background: var(--accent); color: #fff; border: none;
+    padding: 6px 14px; border-radius: 5px; cursor: pointer;
+    font-size: 12px; font-weight: 600; transition: background .15s;
+  }
+  .try-btn:hover { background: var(--accent2); }
+  .try-result { margin-top: 12px; }
+  .try-result pre { max-height: 300px; overflow-y: auto; }
+
+  /* RESPONSE SCHEMA */
+  .schema-field { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(48,54,61,.4); font-size: 12px; }
+  .schema-field:last-child { border-bottom: none; }
+  .sf-name { font-family: var(--ff-mono); color: #79c0ff; min-width: 120px; }
+  .sf-type { font-family: var(--ff-mono); color: var(--green); min-width: 70px; font-size: 11px; }
+  .sf-desc { color: var(--muted); }
+
+  /* FOOTER */
+  .footer { padding: 24px 48px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .hero, .content, .base-url-box, .footer { padding-left: 16px; padding-right: 16px; }
+    .base-url-box { margin: 0 16px; }
+    .hero-stats { gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">A</div>
+    <div>
+      <div class="logo-text">Animora API</div>
+      <div class="logo-sub">v1.0.0</div>
+    </div>
+  </div>
+  <div class="sidebar-section">Endpoints</div>
+  <a href="#home" class="sidebar-item active"><span class="method-badge get">GET</span> /anime/home</a>
+  <a href="#search" class="sidebar-item"><span class="method-badge get">GET</span> /anime/search</a>
+  <a href="#genre-list" class="sidebar-item"><span class="method-badge get">GET</span> /anime/genre-list</a>
+  <a href="#genre" class="sidebar-item"><span class="method-badge get">GET</span> /anime/genre/:slug</a>
+  <a href="#season-list" class="sidebar-item"><span class="method-badge get">GET</span> /anime/season-list</a>
+  <a href="#season" class="sidebar-item"><span class="method-badge get">GET</span> /anime/season/:slug</a>
+  <a href="#all" class="sidebar-item"><span class="method-badge get">GET</span> /anime/all</a>
+  <a href="#detail" class="sidebar-item"><span class="method-badge get">GET</span> /anime/detail/:slug</a>
+  <div class="sidebar-section">Info</div>
+  <a href="#response" class="sidebar-item">Response Format</a>
+  <a href="#errors" class="sidebar-item">Error Codes</a>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-badge">🔴 Live — Powered by Cloudscraper</div>
+    <h1>Animora <span>Scraper</span> API</h1>
+    <p>REST API untuk mengambil data anime batch subtitle Indonesia dari sumber terpercaya. Siap digunakan sebagai base URL untuk website atau aplikasi anime kamu.</p>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-val">8</div><div class="stat-label">Endpoints</div></div>
+      <div class="stat"><div class="stat-val">4978+</div><div class="stat-label">Anime</div></div>
+      <div class="stat"><div class="stat-val">45</div><div class="stat-label">Genre</div></div>
+      <div class="stat"><div class="stat-val">45</div><div class="stat-label">Season</div></div>
+    </div>
+  </div>
+
+  <!-- BASE URL -->
+  <div style="padding: 20px 0;">
+    <div class="base-url-box">
+      <span class="base-url-label">Base URL</span>
+      <span class="base-url-val" id="baseUrl">{{ base_url }}</span>
+      <button class="copy-btn" onclick="copyBase()">Copy</button>
+    </div>
+  </div>
+
+  <!-- RATE LIMIT WARNING -->
+  <div style="margin:0 48px 0;padding:12px 16px;background:rgba(232,65,90,.07);border:1px solid rgba(232,65,90,.25);border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;">
+    <span style="font-size:16px">⚠️</span>
+    <span><strong style="color:#e8415a">Rate Limit:</strong> Maksimal <strong>100 request per menit</strong> per IP. Jika melebihi batas, API akan mengembalikan HTTP <code style="background:rgba(232,65,90,.12);padding:1px 5px;border-radius:3px;color:#e8415a">429 Too Many Requests</code>. Header <code style="background:rgba(232,65,90,.12);padding:1px 5px;border-radius:3px;color:#e8415a">X-RateLimit-Remaining</code> tersedia di setiap response.</span>
+  </div>
+
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- HOME -->
+    <div class="endpoint-group" id="home">
+      <div class="group-title">🏠 Home</div>
+      <div class="group-desc">Mendapatkan daftar anime terbaru dari halaman utama.</div>
+      <div class="endpoint-card">
+        <div class="endpoint-header" onclick="toggle(this)">
+          <span class="method get">GET</span>
+          <span class="endpoint-path">/anime/home</span>
+          <span class="endpoint-desc">Anime terbaru</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="endpoint-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Response Schema</div>
+            <div class="schema-field"><span class="sf-name">status</span><span class="sf-type">string</span><span class="sf-desc">"ok" atau "error"</span></div>
+            <div class="schema-field"><span class="sf-name">data</span><span class="sf-type">array</span><span class="sf-desc">List anime terbaru</span></div>
+            <div class="schema-field"><span class="sf-name">data[].title</span><span class="sf-type">string</span><span class="sf-desc">Judul anime</span></div>
+            <div class="schema-field"><span class="sf-name">data[].slug</span><span class="sf-type">string</span><span class="sf-desc">Slug untuk detail endpoint</span></div>
+            <div class="schema-field"><span class="sf-name">data[].poster</span><span class="sf-type">string</span><span class="sf-desc">URL gambar poster</span></div>
+            <div class="schema-field"><span class="sf-name">data[].genres</span><span class="sf-type">string[]</span><span class="sf-desc">Daftar genre anime</span></div>
+            <div class="schema-field"><span class="sf-name">data[].url</span><span class="sf-type">string</span><span class="sf-desc">URL halaman asli</span></div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Contoh Response</div>
+            <div class="code-block">
+              <div class="code-header"><span>JSON</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <div class="code-body"><pre>{
+  <span class="j-key">"status"</span>: <span class="j-str">"ok"</span>,
+  <span class="j-key">"data"</span>: [
+    {
+      <span class="j-key">"title"</span>: <span class="j-str">"Devil May Cry (2025) Season 1-2 Batch Subtitle Indonesia"</span>,
+      <span class="j-key">"slug"</span>: <span class="j-str">"dmc-2025-batch-subtitle-indonesia"</span>,
+      <span class="j-key">"poster"</span>: <span class="j-str">"https://kusonime.com/wp-content/uploads/2025/04/Devil-May-Cry-2025.jpg"</span>,
+      <span class="j-key">"genres"</span>: [<span class="j-str">"Action"</span>, <span class="j-str">"Demons"</span>, <span class="j-str">"Fantasy"</span>],
+      <span class="j-key">"url"</span>: <span class="j-str">"https://kusonime.com/dmc-2025-batch-subtitle-indonesia/"</span>
+    }
+  ]
+}</pre></div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Coba Langsung</div>
+            <button class="try-btn" onclick="tryApi('/anime/home', this)">▶ Run</button>
+            <div class="try-result"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="endpoint-group" id="search">
+      <div class="group-title">🔍 Search</div>
+      <div class="group-desc">Mencari anime berdasarkan kata kunci. Mendukung pagination.</div>
+      <div class="endpoint-card">
+        <div class="endpoint-header" onclick="toggle(this)">
+          <span class="method get">GET</span>
+          <span class="endpoint-path">/anime/search/<span class="param">:query</span><span class="query">?page=1</span></span>
+          <span class="endpoint-desc">Cari anime</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="endpoint-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Path Parameter</div>
+            <table class="params-table">
+              <tr><th>Nama</th><th>Tipe</th><th>Wajib</th><th>Keterangan</th></tr>
+              <tr><td class="param-name">query</td><td class="param-type">string</td><td><span class="param-req req">required</span></td><td>Kata kunci pencarian</td></tr>
+            </table>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Query Parameter</div>
+            <table class="params-table">
+              <tr><th>Nama</th><th>Tipe</th><th>Wajib</th><th>Default</th><th>Keterangan</th></tr>
+              <tr><td class="param-name">page</td><td class="param-type">integer</td><td><span class="param-req opt">optional</span></td><td>1</td><td>Nomor halaman</td></tr>
+            </table>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Response Schema</div>
+            <div class="schema-field"><span class="sf-name">status</span><span class="sf-type">string</span><span class="sf-desc">"ok" atau "error"</span></div>
+            <div class="schema-field"><span class="sf-name">data</span><span class="sf-type">array</span><span class="sf-desc">Hasil pencarian (sama dengan home)</span></div>
+            <div class="schema-field"><span class="sf-name">page</span><span class="sf-type">integer</span><span class="sf-desc">Halaman saat ini</span></div>
+            <div class="schema-field"><span class="sf-name">next_page</span><span class="sf-type">string|null</span><span class="sf-desc">URL halaman berikutnya, null jika tidak ada</span></div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Contoh Response</div>
+            <div class="code-block">
+              <div class="code-header"><span>JSON</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <div class="code-body"><pre>{
+  <span class="j-key">"status"</span>: <span class="j-str">"ok"</span>,
+  <span class="j-key">"data"</span>: [
+    {
+      <span class="j-key">"title"</span>: <span class="j-str">"Boruto: Naruto Next Generations 001-293 END Batch Subtitle Indonesia"</span>,
+      <span class="j-key">"slug"</span>: <span class="j-str">"boruto-batch-subtitle-indonesia-7"</span>,
+      <span class="j-key">"poster"</span>: <span class="j-str">"https://kusonime.com/wp-content/uploads/2017/09/Boruto-Naruto-Next-Generations.jpg"</span>,
+      <span class="j-key">"genres"</span>: [<span class="j-str">"Action"</span>, <span class="j-str">"Adventure"</span>, <span class="j-str">"Shounen"</span>],
+      <span class="j-key">"url"</span>: <span class="j-str">"https://kusonime.com/boruto-batch-subtitle-indonesia-7/"</span>
+    }
+  ],
+  <span class="j-key">"page"</span>: <span class="j-num">1</span>,
+  <span class="j-key">"next_page"</span>: <span class="j-str">"https://kusonime.com/page/2/?s=naruto"</span>
+}</pre></div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Coba Langsung</div>
+            <button class="try-btn" onclick="tryApi('/anime/search/naruto', this)">▶ Run (naruto)</button>
+            <div class="try-result"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GENRE LIST -->
+    <div class="endpoint-group" id="genre-list">
+      <div class="group-title">🏷️ Genre List</div>
+      <div class="group-desc">Mendapatkan semua daftar genre yang tersedia (45 genre).</div>
+      <div class="endpoint-card">
+        <div class="endpoint-header" onclick="toggle(this)">
+          <span class="method get">GET</span>
+          <span class="endpoint-path">/anime/genre-list</span>
+          <span class="endpoint-desc">Semua genre</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="endpoint-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Response Schema</div>
+            <div class="schema-field"><span class="sf-name">status</span><span class="sf-type">string</span><span class="sf-desc">"ok" atau "error"</span></div>
+            <div class="schema-field"><span class="sf-name">data</span><span class="sf-type">array</span><span class="sf-desc">List genre</span></div>
+            <div class="schema-field"><span class="sf-name">data[].name</span><span class="sf-type">string</span><span class="sf-desc">Nama genre</span></div>
+            <div class="schema-field"><span class="sf-name">data[].slug</span><span class="sf-type">string</span><span class="sf-desc">Slug untuk genre endpoint</span></div>
+            <div class="schema-field"><span class="sf-name">data[].url</span><span class="sf-type">string</span><span class="sf-desc">URL halaman genre</span></div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Contoh Response</div>
+            <div class="code-block">
+              <div class="code-header"><span>JSON</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <div class="code-body"><pre>{
+  <span class="j-key">"status"</span>: <span class="j-str">"ok"</span>,
+  <span class="j-key">"data"</span>: [
+    { <span class="j-key">"name"</span>: <span class="j-str">"Action"</span>, <span class="j-key">"slug"</span>: <span class="j-str">"action"</span>, <span class="j-key">"url"</span>: <span class="j-str">"https://kusonime.com/genres/action/"</span> },
+    { <span class="j-key">"name"</span>: <span class="j-str">"Adventure"</span>, <span class="j-key">"slug"</span>: <span class="j-str">"adventure"</span>, <span class="j-key">"url"</span>: <span class="j-str">"https://kusonime.com/genres/adventure/"</span> },
+    { <span class="j-key">"name"</span>: <span class="j-str">"Comedy"</span>, <span class="j-key">"slug"</span>: <span class="j-str">"comedy"</span>, <span class="j-key">"url"</span>: <span class="j-str">"https://kusonime.com/genres/comedy/"</span> }
+  ]
+}</pre></div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Coba Langsung</div>
+            <button class="try-btn" onclick="tryApi('/anime/genre-list', this)">▶ Run</button>
+            <div class="try-result"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GENRE DETAIL -->
+    <div class="endpoint-group" id="genre">
+      <div class="group-title">🎭 Anime per Genre</div>
+      <div class="group-desc">Mendapatkan daftar anime berdasarkan genre tertentu. Mendukung pagination.</div>
+      <div class="endpoint-card">
+        <div class="endpoint-header" onclick="toggle(this)">
+          <span class="method get">GET</span>
+          <span class="endpoint-path">/anime/genre/<span class="param">:slug</span><span class="query">?page=1</span></span>
+          <span class="endpoint-desc">Anime per genre</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="endpoint-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Path Parameter</div>
+            <table class="params-table">
+              <tr><th>Nama</th><th>Tipe</th><th>Wajib</th><th>Contoh</th></tr>
+              <tr><td class="param-name">slug</td><td class="param-type">string</td><td><span class="param-req req">required</span></td><td>action, comedy, romance</td></tr>
+            </table>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Query Parameter</div>
+            <table class="params-table">
+              <tr><th>Nama</th><th>Tipe</th><th>Wajib</th><th>Default</th><th>Keterangan</th></tr>
+              <tr><td class="param-name">page</td><td class="param-type">integer</td><td><span class="param-req opt">optional</span></td><td>1</td><td>Nomor halaman</td></tr>
+            </table>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Contoh Response</div>
+            <div class="code-block">
+              <div class="code-header"><span>JSON</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <div class="code-body"><pre>{
+  <span class="j-key">"status"</span>: <span class="j-str">"ok"</span>,
+  <span class="j-key">"data"</span>: [
+    {
+      <span class="j-key">"title"</span>: <span class="j-str">"Devil May Cry (2025) Season 1-2 Batch Subtitle Indonesia"</span>,
+      <span class="j-key">"slug"</span>: <span class="j-str">"dmc-2025-batch-subtitle-indonesia"</span>,
+      <span class="j-key">"poster"</span>: <span class="j-str">"https://kusonime.com/wp-content/uploads/2025/04/Devil-May-Cry-2025.jpg"</span>,
+      <span class="j-key">"genres"</span>: [<span class="j-str">"Action"</span>, <span class="j-str">"Demons"</span>, <span class="j-str">"Fantasy"</span>],
+      <span class="j-key">"url"</span>: <span class="j-str">"https://kusonime.com/dmc-2025-batch-subtitle-indonesia/"</span>
+    }
+  ],
+  <span class="j-key">"page"</span>: <span class="j-num">1</span>,
+  <span class="j-key">"next_page"</span>: <span class="j-str">"https://kusonime.com/genres/action/page/2/"</span>
+}</pre></div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Coba Langsung</div>
+            <button class="try-btn" onclick="tryApi('/anime/genre/action', this)">▶ Run (action)</button>
+            <div class="try-result"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEASON LIST -->
+    <div class="endpoint-group" id="season-list">
+      <div class="group-title">📅 Season List</div>
+      <div class="group-desc">Mendapatkan semua daftar musim/tahun rilis yang tersedia (45 season).</div>
+      <div class="endpoint-card">
+        <div class="endpoint-header" onclick="toggle(this)">
+          <span class="method get">GET</span>
+          <span class="endpoint-path">/anime/season-list</span>
+          <span class="endpoint-desc">Semua season</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="endpoint-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Contoh Response</div>
+            <div class="code-block">
+              <div class="code-header"><span>JSON</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <div class="code-body"><pre>{
+  <span class="j-key">"status"</span>: <span class="j-str">"ok"</span>,
+  <span class="j-key">"data"</span>: [
+    { <span class="j-key">"name"</span>: <span class="j-str">"Anime Movie"</span>, <span class="j-key">"slug"</span>: <span class="j-str">"movie"</span>, <span class="j-key">"url"</span>: <span class="j-str">"https://kusonime.com/seasons/movie/"</span> },
+    { <span class="j-key">"name"</span>: <span class="j-str">"Fall 2024"</span>, <span class="j-key">"slug"</span>: <span class="j-str">"fall-2024"</span>, <span class="j-key">"url"</span>: <span class="j-str">"https://kusonime.com/seasons/fall-2024/"</span> },
+    { <span class="j-key">"name"</span>: <span class="j-str">"Winter 2025"</span>, <span class="j-key">"slug"</span>: <span class="j-str">"winter-2025"</span>, <span class="j-key">"url"</span>: <span class="j-str">"https://kusonime.com/seasons/winter-2025/"</span> }
+  ]
+}</pre></div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Coba Langsung</div>
+            <button class="try-btn" onclick="tryApi('/anime/season-list', this)">▶ Run</button>
+            <div class="try-result"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEASON DETAIL -->
+    <div class="endpoint-group" id="season">
+      <div class="group-title">🗓️ Anime per Season</div>
+      <div class="group-desc">Mendapatkan daftar anime berdasarkan musim/tahun rilis. Mendukung pagination.</div>
+      <div class="endpoint-card">
+        <div class="endpoint-header" onclick="toggle(this)">
+          <span class="method get">GET</span>
+          <span class="endpoint-path">/anime/season/<span class="param">:slug</span><span class="query">?page=1</span></span>
+          <span class="endpoint-desc">Anime per season</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="endpoint-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Path Parameter</div>
+            <table class="params-table">
+              <tr><th>Nama</th><th>Tipe</th><th>Wajib</th><th>Contoh</th></tr>
+              <tr><td class="param-name">slug</td><td class="param-type">string</td><td><span class="param-req req">required</span></td><td>fall-2024, winter-2025, movie</td></tr>
+            </table>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Coba Langsung</div>
+            <button class="try-btn" onclick="tryApi('/anime/season/fall-2024', this)">▶ Run (fall-2024)</button>
+            <div class="try-result"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL ANIME -->
+    <div class="endpoint-group" id="all">
+      <div class="group-title">📋 Semua Anime</div>
+      <div class="group-desc">Mendapatkan seluruh daftar anime (4978+ judul) secara alphabetical. 1500 per halaman, total 4 halaman.</div>
+      <div class="endpoint-card">
+        <div class="endpoint-header" onclick="toggle(this)">
+          <span class="method get">GET</span>
+          <span class="endpoint-path">/anime/all<span class="query">?page=1</span></span>
+          <span class="endpoint-desc">Semua anime</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="endpoint-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Query Parameter</div>
+            <table class="params-table">
+              <tr><th>Nama</th><th>Tipe</th><th>Wajib</th><th>Default</th><th>Keterangan</th></tr>
+              <tr><td class="param-name">page</td><td class="param-type">integer</td><td><span class="param-req opt">optional</span></td><td>1</td><td>Halaman 1-4 (1500 item/halaman)</td></tr>
+            </table>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Contoh Response</div>
+            <div class="code-block">
+              <div class="code-header"><span>JSON</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <div class="code-body"><pre>{
+  <span class="j-key">"status"</span>: <span class="j-str">"ok"</span>,
+  <span class="j-key">"data"</span>: [
+    {
+      <span class="j-key">"title"</span>: <span class="j-str">".hack//G.U. Returner Subtitle Indonesia"</span>,
+      <span class="j-key">"slug"</span>: <span class="j-str">"hackg-u-returner-subtitle-indonesia"</span>,
+      <span class="j-key">"url"</span>: <span class="j-str">"https://kusonime.com/hackg-u-returner-subtitle-indonesia/"</span>
+    }
+  ],
+  <span class="j-key">"page"</span>: <span class="j-num">1</span>,
+  <span class="j-key">"next_page"</span>: <span class="j-str">"https://kusonime.com/list-anime-batch-sub-indo/page/2/"</span>
+}</pre></div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Coba Langsung</div>
+            <button class="try-btn" onclick="tryApi('/anime/all', this)">▶ Run</button>
+            <div class="try-result"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETAIL -->
+    <div class="endpoint-group" id="detail">
+      <div class="group-title">📺 Detail Anime</div>
+      <div class="group-desc">Mendapatkan informasi lengkap + link download per resolusi untuk satu anime.</div>
+      <div class="endpoint-card">
+        <div class="endpoint-header" onclick="toggle(this)">
+          <span class="method get">GET</span>
+          <span class="endpoint-path">/anime/detail/<span class="param">:slug</span></span>
+          <span class="endpoint-desc">Detail + download links</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="endpoint-body open">
+          <div class="ep-section">
+            <div class="ep-section-title">Path Parameter</div>
+            <table class="params-table">
+              <tr><th>Nama</th><th>Tipe</th><th>Wajib</th><th>Keterangan</th></tr>
+              <tr><td class="param-name">slug</td><td class="param-type">string</td><td><span class="param-req req">required</span></td><td>Slug anime dari endpoint lain</td></tr>
+            </table>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Response Schema</div>
+            <div class="schema-field"><span class="sf-name">data.title</span><span class="sf-type">string</span><span class="sf-desc">Judul anime</span></div>
+            <div class="schema-field"><span class="sf-name">data.poster</span><span class="sf-type">string</span><span class="sf-desc">URL poster</span></div>
+            <div class="schema-field"><span class="sf-name">data.synopsis</span><span class="sf-type">string</span><span class="sf-desc">Sinopsis anime</span></div>
+            <div class="schema-field"><span class="sf-name">data.batch_title</span><span class="sf-type">string</span><span class="sf-desc">Judul batch download</span></div>
+            <div class="schema-field"><span class="sf-name">data.info.japanese</span><span class="sf-type">string</span><span class="sf-desc">Judul bahasa Jepang</span></div>
+            <div class="schema-field"><span class="sf-name">data.info.genre</span><span class="sf-type">string</span><span class="sf-desc">Genre (comma separated)</span></div>
+            <div class="schema-field"><span class="sf-name">data.info.seasons</span><span class="sf-type">string</span><span class="sf-desc">Musim tayang</span></div>
+            <div class="schema-field"><span class="sf-name">data.info.type</span><span class="sf-type">string</span><span class="sf-desc">Tipe (BD, TV, dll)</span></div>
+            <div class="schema-field"><span class="sf-name">data.info.status</span><span class="sf-type">string</span><span class="sf-desc">Status (Completed/Ongoing)</span></div>
+            <div class="schema-field"><span class="sf-name">data.info.total_episode</span><span class="sf-type">string</span><span class="sf-desc">Total episode</span></div>
+            <div class="schema-field"><span class="sf-name">data.info.score</span><span class="sf-type">string</span><span class="sf-desc">Skor MAL</span></div>
+            <div class="schema-field"><span class="sf-name">data.info.duration</span><span class="sf-type">string</span><span class="sf-desc">Durasi per episode</span></div>
+            <div class="schema-field"><span class="sf-name">data.info.released_on</span><span class="sf-type">string</span><span class="sf-desc">Tanggal rilis</span></div>
+            <div class="schema-field"><span class="sf-name">data.downloads</span><span class="sf-type">array</span><span class="sf-desc">Link download per resolusi</span></div>
+            <div class="schema-field"><span class="sf-name">data.downloads[].resolution</span><span class="sf-type">string</span><span class="sf-desc">360P / 480P / 720P / 1080P / Subtitle</span></div>
+            <div class="schema-field"><span class="sf-name">data.downloads[].links</span><span class="sf-type">array</span><span class="sf-desc">List host download</span></div>
+            <div class="schema-field"><span class="sf-name">data.downloads[].links[].host</span><span class="sf-type">string</span><span class="sf-desc">Nama host (Google Drive, Pixeldrain, dll)</span></div>
+            <div class="schema-field"><span class="sf-name">data.downloads[].links[].url</span><span class="sf-type">string</span><span class="sf-desc">URL download langsung</span></div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Contoh Response</div>
+            <div class="code-block">
+              <div class="code-header"><span>JSON</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+              <div class="code-body"><pre>{
+  <span class="j-key">"status"</span>: <span class="j-str">"ok"</span>,
+  <span class="j-key">"data"</span>: {
+    <span class="j-key">"title"</span>: <span class="j-str">"Fumetsu no Anata e BD Batch Subtitle Indonesia"</span>,
+    <span class="j-key">"poster"</span>: <span class="j-str">"https://kusonime.com/wp-content/uploads/2021/05/Fumetsu-no-Anata-e-549x340.jpg"</span>,
+    <span class="j-key">"synopsis"</span>: <span class="j-str">"Ada benda abadi misterius yang dikirim ke Bumi tanpa emosi atau identitas..."</span>,
+    <span class="j-key">"batch_title"</span>: <span class="j-str">"Download Fumetsu no Anata e Batch BD Subtitle Indonesia"</span>,
+    <span class="j-key">"info"</span>: {
+      <span class="j-key">"japanese"</span>: <span class="j-str">"不滅のあなたへ"</span>,
+      <span class="j-key">"genre"</span>: <span class="j-str">"Adventure,Drama,Shounen,Supernatural"</span>,
+      <span class="j-key">"seasons"</span>: <span class="j-str">"Spring 2021"</span>,
+      <span class="j-key">"type"</span>: <span class="j-str">"BD"</span>,
+      <span class="j-key">"status"</span>: <span class="j-str">"Completed"</span>,
+      <span class="j-key">"total_episode"</span>: <span class="j-str">"20"</span>,
+      <span class="j-key">"score"</span>: <span class="j-str">"8.39"</span>,
+      <span class="j-key">"duration"</span>: <span class="j-str">"25 min. per ep."</span>,
+      <span class="j-key">"released_on"</span>: <span class="j-str">"Apr 12, 2021"</span>
+    },
+    <span class="j-key">"downloads"</span>: [
+      {
+        <span class="j-key">"resolution"</span>: <span class="j-str">"360P"</span>,
+        <span class="j-key">"links"</span>: [
+          { <span class="j-key">"host"</span>: <span class="j-str">"Google Sharer"</span>, <span class="j-key">"url"</span>: <span class="j-str">"https://acefile.co/f/72176054/..."</span> },
+          { <span class="j-key">"host"</span>: <span class="j-str">"Google Drive"</span>, <span class="j-key">"url"</span>: <span class="j-str">"https://drive.google.com/..."</span> },
+          { <span class="j-key">"host"</span>: <span class="j-str">"Pixeldrain"</span>, <span class="j-key">"url"</span>: <span class="j-str">"https://pixeldrain.com/..."</span> },
+          { <span class="j-key">"host"</span>: <span class="j-str">"Terabox"</span>, <span class="j-key">"url"</span>: <span class="j-str">"https://1024terabox.com/..."</span> }
+        ]
+      },
+      { <span class="j-key">"resolution"</span>: <span class="j-str">"480P"</span>, <span class="j-key">"links"</span>: [<span class="j-str">...</span>] },
+      { <span class="j-key">"resolution"</span>: <span class="j-str">"720P"</span>, <span class="j-key">"links"</span>: [<span class="j-str">...</span>] },
+      { <span class="j-key">"resolution"</span>: <span class="j-str">"1080P"</span>, <span class="j-key">"links"</span>: [<span class="j-str">...</span>] },
+      { <span class="j-key">"resolution"</span>: <span class="j-str">"Subtitle"</span>, <span class="j-key">"links"</span>: [<span class="j-str">...</span>] }
+    ]
+  }
+}</pre></div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-section-title">Coba Langsung</div>
+            <button class="try-btn" onclick="tryApi('/anime/detail/fumetsu-no-anata-e-batch-subtitle-indonesia-1', this)">▶ Run (Fumetsu no Anata e)</button>
+            <div class="try-result"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ERROR CODES -->
+    <div class="endpoint-group" id="errors">
+      <div class="group-title">⚠️ Error Response</div>
+      <div class="group-desc">Format error yang dikembalikan ketika terjadi kesalahan.</div>
+      <div class="code-block">
+        <div class="code-header"><span>JSON</span></div>
+        <div class="code-body"><pre>{
+  <span class="j-key">"status"</span>: <span class="j-str">"error"</span>,
+  <span class="j-key">"message"</span>: <span class="j-str">"Gagal scrape detail"</span>
+}</pre></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <div class="footer">
+    <span>Animora Scraper API v1.0.0</span>
+    <span>Scrapes kusonime.com — for educational purposes</span>
+  </div>
+</div>
+
+<script>
+function toggle(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  body.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+
+function copyBase() {
+  const url = document.getElementById('baseUrl').textContent;
+  navigator.clipboard.writeText(url);
+  event.target.textContent = 'Copied!';
+  setTimeout(() => event.target.textContent = 'Copy', 1500);
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText);
+  btn.textContent = 'Copied!';
+  setTimeout(() => btn.textContent = 'Copy', 1500);
+}
+
+async function tryApi(path, btn) {
+  const resultDiv = btn.nextElementSibling;
+  btn.disabled = true;
+  btn.textContent = '⏳ Loading...';
+  resultDiv.innerHTML = '';
+  try {
+    const res = await fetch(path);
+    const data = await res.json();
+    const json = JSON.stringify(data, null, 2);
+    resultDiv.innerHTML = `<div class="code-block try-result"><div class="code-header"><span>Response ${res.status}</span><button class="copy-btn" onclick="navigator.clipboard.writeText(this.closest('.code-block').querySelector('pre').innerText)">Copy</button></div><div class="code-body"><pre>${escapeHtml(json)}</pre></div></div>`;
+  } catch(e) {
+    resultDiv.innerHTML = `<div style="color:var(--accent);padding:8px;font-size:12px;">Error: ${e.message}</div>`;
+  }
+  btn.disabled = false;
+  btn.textContent = btn.textContent.replace('⏳ Loading...', '▶ Run');
+  btn.textContent = btn.getAttribute('data-label') || btn.textContent.replace('⏳ Loading...','▶ Run');
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Sidebar active highlight on scroll
+const sections = document.querySelectorAll('.endpoint-group');
+const sidebarLinks = document.querySelectorAll('.sidebar-item');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 80) current = s.id; });
+  sidebarLinks.forEach(l => {
+    l.classList.toggle('active', l.getAttribute('href') === '#' + current);
+  });
+});
+</script>
+</body>
+</html>
