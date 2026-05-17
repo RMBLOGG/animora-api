@@ -61,8 +61,9 @@ def get_next_page(soup):
         if nxt: return nxt["href"]
     nav2 = soup.find("div", class_="navigation")
     if nav2:
-        a = nav2.find("a", href=True)
-        if a and "next" in a.get_text(strip=True).lower(): return a["href"]
+        for a in nav2.find_all("a", href=True):
+            if "next" in a.get_text(strip=True).lower():
+                return a["href"]
     return None
 
 def parse_post_list(soup):
